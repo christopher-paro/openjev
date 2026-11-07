@@ -17,10 +17,13 @@ RUN mkdir -p /opt/card \
     && git clone -q https://github.com/OmniJev/OneJev.git /opt/OneJev \
     && git -C /opt/OneJev checkout -q -f "$ONEJEV" \
     && git -C /opt/OneJev apply /opt/card/serve.patch
+COPY parallel.py /opt/card/parallel.py
+RUN python /opt/card/parallel.py /opt/OneJev/qev/server.py
 RUN python -c "import torch, torchvision; print(f'torch=={torch.__version__}\ntorchvision=={torchvision.__version__}')" > /opt/image-torch.txt \
     && uv pip install --python /opt/venv/bin/python --no-cache -c /opt/card/constraints.txt -c /opt/image-torch.txt \
          -e "/opt/OneJev[train]" huggingface_hub hf_xet brotli flash-linear-attention httpx \
     && uv pip install --python /opt/venv/bin/python --no-cache --no-build-isolation -c /opt/card/constraints.txt -c /opt/image-torch.txt causal-conv1d \
     && python -c "import torch, qev.server; print('server imports on', torch.__version__, 'cuda build', torch.version.cuda)"
+ENV QEV_PARALLEL=4
 EXPOSE 8000
 ENTRYPOINT ["qev", "serve"]
