@@ -33,3 +33,12 @@ if "run_in_threadpool\n" not in src.split("decide_slots")[0]:
     head, tail = src.split(marker, 1)
     src = head + "\nimport asyncio\nimport os\nfrom starlette.concurrency import run_in_threadpool" + marker + tail
 path.write_text(src)
+
+# mammoth-1's config carries vision_config, so the CLI would pick MMDecisionEngine, which serve.patch does not touch:
+# the model's readout and block attention would be skipped. Only an explicit --multimodal takes that engine.
+cli = path.with_name("cli.py")
+text = cli.read_text()
+old = 'if args.multimodal or config.get("vision_config") is not None:'
+if text.count(old) != 1:
+    sys.exit(f"expected exactly one {old!r} in {cli}")
+cli.write_text(text.replace(old, "if args.multimodal:"))
