@@ -1,0 +1,34 @@
+# Builds the arm64 image the DGX Spark runs: upstream publishes amd64 only.
+# No attestations: the in-cluster registry mirror refuses them.
+name: arm64-image
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["docker/**", "openjev/**", "pyproject.toml", ".github/workflows/arm64-image.yml"]
+permissions:
+  contents: read
+  packages: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+    steps:
+      - name: Free disk
+        run: sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache; df -h /
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - name: Base image
+        run: |
+          docker buildx build --platform linux/arm64 --provenance=false --sbom=false --push \
+            -f docker/Dockerfile.base -t ghcr.io/christopher-paro/openjev-base:cu130-torch2.13-arm64 .
+      - name: Server image
+        run: |
+          docker buildx build --platform linux/arm64 --provenance=false --sbom=false --push \
+            --build-arg BASE_IMAGE=ghcr.io/christopher-paro/openjev-base:cu130-torch2.13-arm64 \
+            -f docker/Dockerfile -t ghcr.io/christopher-paro/openjev:arm64-${GITHUB_SHA::12} .

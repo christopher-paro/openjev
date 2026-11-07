@@ -17,4 +17,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=ghcr.io/astral-sh/uv:0.8 /uv /usr/local/bin/uv
 # The version vLLM pins. The encoder models accept it too.
 RUN uv venv --python 3.12 /opt/venv \
-    && uv pip install --python /opt/venv/bin/python --no-cache torch==2.13.0
+    && uv pip install --python /opt/venv/bin/python --no-cache --index-url https://download.pytorch.org/whl/cu130 torch==2.13.0
